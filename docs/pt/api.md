@@ -77,11 +77,22 @@ devolvem objetos nomeados, descritos endpoint a endpoint.
 | Parâmetro | Padrão | Máximo |
 |---|---|---|
 | `limit` | 50 | **100** |
-| `offset` | 0 | — |
+| `offset` | 0 | **1000 sem chave** — ilimitado com uma |
 
 ⚠️ **`limit` acima de 100 é silenciosamente truncado, não recusado.** `?limit=5000` devolve
 HTTP 200 com 100 itens. Se você supuser que recebeu 5.000 linhas, vai processar 2% dos seus
 dados sem perceber. Sempre pagine com `offset` e pare quando `offset >= total`.
+
+**Paginar além de `offset=1000` exige conta.** Sem chave, requisições mais fundas respondem:
+
+```json
+HTTP 403  {"code": "ACCOUNT_REQUIRED", "max_anonymous_offset": 1000}
+```
+
+Esta não é uma armadilha — ela é barulhenta e diz exatamente o que fazer. A linha separa
+*consultar* de *coletar em massa*: consultar, testar e navegar seguem abertos a todos, sem
+cadastro; coleta em massa passa a exigir conta gratuita, para que o tráfego tenha um nome.
+Uma [chave gratuita](https://ctiwatch.com/register) remove o limite por completo.
 
 ### 🔴 Parâmetro desconhecido é ignorado em silêncio
 
@@ -107,7 +118,12 @@ filtro, o filtro não está sendo aplicado.
 | `400` | `{"error":"value is required"}` | Falta parâmetro obrigatório |
 | `400` | `{"error":"Invalid id"}` | Identificador malformado |
 | `401` | `{"error":"Authentication required"}` | Endpoint exige chave |
+| `403` | `{"code":"ACCOUNT_REQUIRED"}` | Paginar além de `offset=1000` sem chave |
 | `404` | `{"error":"Not found"}` | Registro inexistente |
+| `429` | `{"code":"RATE_LIMIT"}` | Teto diário de **requisições** atingido |
+| `429` | `{"code":"ROW_QUOTA"}` | Teto diário de **linhas** atingido |
+
+Leia o campo `code`, não o texto: as mensagens podem ser reescritas, os códigos não.
 
 ### Limites de requisição
 
@@ -121,9 +137,22 @@ x-ratelimit-limit: 150        # o limite do seu escopo
 x-ratelimit-scope: anonymous  # anonymous | chave de API | sessão
 ```
 
-Chaves de API no plano gratuito têm ainda um teto de **100 requisições/dia**. É um limite
-antiabuso, não uma alavanca comercial — se você tem um uso legítimo que precisa de mais,
-peça.
+Tráfego de chave é medido de duas formas, e **linhas** costuma ser a que você encontra
+primeiro:
+
+| | Gratuito | Apoiador |
+|---|---|---|
+| Requisições / dia | 100 | 10.000 |
+| **Linhas / dia** | **25.000** | **200.000** |
+
+```
+x-rowquota-limit: 25000
+x-rowquota-remaining: 24890
+```
+
+Contar linhas em vez de requisições existe porque requisição sozinha não mede nada: um export
+CSV devolve 5.000 linhas e custa uma requisição só. Os dois são tetos antiabuso, não alavancas
+comerciais — se você tem um uso legítimo que precisa de mais, peça e o limite sobe.
 
 ---
 

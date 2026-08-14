@@ -53,12 +53,16 @@ anything if the filtered count equals the unfiltered count.
 descartado sem erro, então o nome errado devolve as 359.241 CVEs parecendo sucesso. O script
 se recusa a imprimir se a contagem filtrada for igual à não filtrada.*
 
-**`blocklist.py` — the silently clamped page.** `limit` is capped at 100 and the API does not
-say so. Asking for 5,000 returns 100 rows with HTTP 200. The script pages with `offset` and
-stops at `total`.
+**`blocklist.py` — the silently clamped page, and the depth limit.** `limit` is capped at 100
+and the API does not say so: asking for 5,000 returns 100 rows with HTTP 200. The script pages
+with `offset` and stops at `total`. Without an API key it also stops at `offset=1000` — that
+limit *is* announced, with HTTP 403 and `code: ACCOUNT_REQUIRED`, and the script prints what to
+do about it instead of dying on a traceback. Set `CTIWATCH_API_KEY` and the limit is gone.
 
-*O `limit` é limitado a 100 e a API não avisa. Pedir 5.000 devolve 100 linhas com HTTP 200. O
-script pagina com `offset` e para no `total`.*
+*O `limit` é limitado a 100 e a API não avisa: pedir 5.000 devolve 100 linhas com HTTP 200. O
+script pagina com `offset` e para no `total`. Sem chave ele também para em `offset=1000` — esse
+limite é anunciado, com HTTP 403 e `code: ACCOUNT_REQUIRED`, e o script diz o que fazer em vez
+de morrer num traceback. Com `CTIWATCH_API_KEY` definida, o limite some.*
 
 **`actor-report.py` — versioned group tags.** `by-name/lockbit/victims` returns **5** claims;
 the group's real footprint is **3,275**, spread across `lockbit2`, `lockbit3` and `lockbit5`.

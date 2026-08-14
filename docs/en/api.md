@@ -76,11 +76,22 @@ named objects instead, described per endpoint.
 | Parameter | Default | Maximum |
 |---|---|---|
 | `limit` | 50 | **100** |
-| `offset` | 0 | — |
+| `offset` | 0 | **1000 without a key** — unlimited with one |
 
 ⚠️ **A `limit` above 100 is silently clamped, not rejected.** `?limit=5000` returns HTTP 200
 with 100 items. If you assume you received 5,000 rows, you will silently process 2% of your
 data. Always page with `offset` and stop when `offset >= total`.
+
+**Paging past `offset=1000` requires an account.** Deeper requests without a key answer:
+
+```json
+HTTP 403  {"code": "ACCOUNT_REQUIRED", "max_anonymous_offset": 1000}
+```
+
+This one is not a trap — it is loud, and it tells you exactly what to do. The line is drawn
+between *reading* and *collecting in bulk*: querying, testing and browsing stay open to
+everyone with no signup, while bulk collection needs a free account so the traffic has a name
+attached to it. A [free key](https://ctiwatch.com/register) removes the limit entirely.
 
 ### 🔴 Unknown parameters are silently ignored
 
@@ -106,7 +117,12 @@ without your filter, the filter is not being applied.
 | `400` | `{"error":"value is required"}` | Missing required parameter |
 | `400` | `{"error":"Invalid id"}` | Malformed identifier |
 | `401` | `{"error":"Authentication required"}` | Endpoint needs a key |
+| `403` | `{"code":"ACCOUNT_REQUIRED"}` | Paging past `offset=1000` without a key |
 | `404` | `{"error":"Not found"}` | No such record |
+| `429` | `{"code":"RATE_LIMIT"}` | Daily **request** cap reached |
+| `429` | `{"code":"ROW_QUOTA"}` | Daily **row** cap reached |
+
+Read the `code` field, not the prose: the messages may be reworded, the codes will not.
 
 ### Rate limits
 
@@ -120,9 +136,21 @@ x-ratelimit-limit: 150        # your scope's limit
 x-ratelimit-scope: anonymous  # anonymous | api key | session
 ```
 
-API keys on the free tier additionally carry a **100 requests/day** cap. That is an
-anti-abuse ceiling, not a sales lever — if you have a legitimate use that needs more,
-ask.
+Key traffic is metered two ways, and **rows** is usually the one you will meet first:
+
+| | Free | Supporter |
+|---|---|---|
+| Requests / day | 100 | 10,000 |
+| **Rows / day** | **25,000** | **200,000** |
+
+```
+x-rowquota-limit: 25000
+x-rowquota-remaining: 24890
+```
+
+Counting rows rather than requests exists because requests alone measure nothing: one CSV
+export returns 5,000 rows and costs a single request. Both are anti-abuse ceilings, not sales
+levers — if you have a legitimate use that needs more, ask and it gets raised.
 
 ---
 
