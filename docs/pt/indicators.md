@@ -54,10 +54,14 @@ de bloqueio, semear uma caçada, ou enriquecer dado que você já tem.
 Pela API:
 
 ```bash
-# IPs de alta confiança, em CSV
-curl -H "X-API-Key: $CTIWATCH_KEY" \
-  "https://ctiwatch.com/api/v1/iocs/export/csv?type=ip&min_confidence=80"
+# Exportação CSV — qualquer conta logada, até 5.000 linhas
+curl -H "X-Api-Key: $CTIWATCH_KEY" \
+  "https://ctiwatch.com/api/v1/iocs/export/csv?limit=5000" > iocs.csv
 ```
+
+⚠️ O endpoint de CSV aceita **só `limit`** — ele sempre devolve os indicadores mais recentes
+de todos os tipos. Para filtrar por tipo ou confiança, pagine o endpoint JSON (veja
+[`examples/blocklist.py`](../../examples/blocklist.py)).
 
 ### Entendendo o `confidence_score`
 

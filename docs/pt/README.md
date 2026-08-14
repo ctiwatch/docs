@@ -124,8 +124,8 @@ curl https://ctiwatch.com/api/v1/stats
 curl "https://ctiwatch.com/api/v1/iocs/lookup?value=1.2.3.4"
 
 # Com chave de API
-curl -H "X-API-Key: $CTIWATCH_KEY" \
-     "https://ctiwatch.com/api/v1/vulnerabilities?is_in_kev=true&limit=20"
+curl -H "X-Api-Key: $CTIWATCH_KEY" \
+     "https://ctiwatch.com/api/v1/vulnerabilities?is_kev=true&limit=20"
 ```
 
 | Endpoint | Para que serve |
@@ -142,4 +142,4 @@ curl -H "X-API-Key: $CTIWATCH_KEY" \
 As chaves são criadas em [Configurações → API Keys](https://ctiwatch.com/settings/api-keys).
 O plano gratuito permite 100 requisições/dia por chave.
 
-*Uma referência dedicada da API é o próximo documento previsto para este repositório.*
+**[→ Referência completa da API](api.md)** · **[Exemplos executáveis](../../examples/)**

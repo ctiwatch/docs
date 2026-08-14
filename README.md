@@ -49,7 +49,7 @@ made by attackers*, not confirmed breaches. Attackers exaggerate, recycle old da
 occasionally invent. The platform reproduces the claim and labels it as such — read those
 pages as "this group says it hit this organization", never as established fact.
 
-**[→ Full documentation](docs/en/README.md)**
+**[→ Full documentation](docs/en/README.md)** · [API reference](docs/en/api.md) · [Runnable examples](examples/)
 
 ---
 
@@ -95,7 +95,7 @@ exagera, recicla dado velho e às vezes inventa. A plataforma reproduz a alegaç
 como tal — leia essas páginas como "este grupo afirma ter atingido esta organização", nunca
 como fato estabelecido.
 
-**[→ Documentação completa](docs/pt/README.md)**
+**[→ Documentação completa](docs/pt/README.md)** · [Referência da API](docs/pt/api.md) · [Exemplos executáveis](examples/)
 
 ---
 

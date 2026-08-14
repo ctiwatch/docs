@@ -77,7 +77,7 @@ visível no feed público.
 Crie, inspecione e revogue chaves. O plano gratuito permite **100 requisições/dia por chave**.
 
 ```bash
-curl -H "X-API-Key: $CTIWATCH_KEY" \
+curl -H "X-Api-Key: $CTIWATCH_KEY" \
      "https://ctiwatch.com/api/v1/victims?country=BR&limit=50"
 ```
 
