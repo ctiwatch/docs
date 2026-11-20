@@ -55,7 +55,7 @@ Pela API:
 
 ```bash
 # Exportação CSV — qualquer conta logada, até 5.000 linhas
-curl -H "X-Api-Key: $CTIWATCH_KEY" \
+curl -H "X-Api-Key: $CTIWATCH_API_KEY" \
   "https://ctiwatch.com/api/v1/iocs/export/csv?limit=5000" > iocs.csv
 ```
 

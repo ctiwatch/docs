@@ -2,19 +2,21 @@
 
 [← Documentation](../README.md) · [API reference](../docs/en/api.md) · [Referência da API](../docs/pt/api.md)
 
-Every script here was **executed against the live API before being published**. No API key is
-required for any of them.
+Every script here was **executed against the live API before being published** (last check:
+20 Nov 2026). All of them need a free API key in the `CTIWATCH_API_KEY` environment variable —
+create one at [ctiwatch.com/settings/api-keys](https://ctiwatch.com/settings/api-keys).
 
-Cada script aqui foi **executado contra a API ao vivo antes de ser publicado**. Nenhum deles
-exige chave de API.
+Cada script aqui foi **executado contra a API ao vivo antes de ser publicado** (última
+conferência: 20/nov/2026). Todos precisam de uma chave de API gratuita na variável de ambiente
+`CTIWATCH_API_KEY` — crie em [ctiwatch.com/settings/api-keys](https://ctiwatch.com/settings/api-keys).
 
 | Script | What it does · O que faz | Needs |
 |---|---|---|
-| [`check-ioc.sh`](check-ioc.sh) | Is this IP / domain / hash known? · Esse IP / domínio / hash é conhecido? | curl, jq |
-| [`kev-watch.sh`](kev-watch.sh) | CVEs confirmed exploited, newest first · CVEs com exploração confirmada | curl, jq |
-| [`blocklist.py`](blocklist.py) | High-confidence blocklist, paginated correctly · Lista de bloqueio paginada | python3 |
-| [`sector-watch.py`](sector-watch.py) | Pressure on your sector and country · Pressão sobre seu setor e país | python3 |
-| [`actor-report.py`](actor-report.py) | Full briefing on one group · Dossiê de um grupo | python3 |
+| [`check-ioc.sh`](check-ioc.sh) | Is this IP / domain / hash known? · Esse IP / domínio / hash é conhecido? | curl, jq, API key |
+| [`kev-watch.sh`](kev-watch.sh) | CVEs confirmed exploited, newest first · CVEs com exploração confirmada | curl, jq, API key |
+| [`blocklist.py`](blocklist.py) | High-confidence blocklist, paginated correctly · Lista de bloqueio paginada | python3, API key |
+| [`sector-watch.py`](sector-watch.py) | Pressure on your sector and country · Pressão sobre seu setor e país | python3, API key |
+| [`actor-report.py`](actor-report.py) | Full briefing on one group · Dossiê de um grupo | python3, API key |
 
 The Python scripts use the **standard library only** — no `pip install`.
 Os scripts Python usam **só a biblioteca padrão** — sem `pip install`.
@@ -46,32 +48,34 @@ durante a escrita.
 
 **`kev-watch.sh` — the silently ignored filter.** The published spec says the KEV filter is
 `in_kev`; it is actually `is_kev`. Unknown parameters are dropped without an error, so the
-wrong name returns all 359,241 CVEs looking like a success. The script refuses to print
+wrong name returns all 410,753 CVEs looking like a success. The script refuses to print
 anything if the filtered count equals the unfiltered count.
 
 *O spec publicado diz que o filtro de KEV é `in_kev`; ele é `is_kev`. Parâmetro desconhecido é
-descartado sem erro, então o nome errado devolve as 359.241 CVEs parecendo sucesso. O script
+descartado sem erro, então o nome errado devolve as 410.753 CVEs parecendo sucesso. O script
 se recusa a imprimir se a contagem filtrada for igual à não filtrada.*
 
-**`blocklist.py` — the silently clamped page, and the depth limit.** `limit` is capped at 100
+**`blocklist.py` — the silently clamped page, and the row quota.** `limit` is capped at 100
 and the API does not say so: asking for 5,000 returns 100 rows with HTTP 200. The script pages
-with `offset` and stops at `total`. Without an API key it also stops at `offset=1000` — that
-limit *is* announced, with HTTP 403 and `code: ACCOUNT_REQUIRED`, and the script prints what to
-do about it instead of dying on a traceback. Set `CTIWATCH_API_KEY` and the limit is gone.
+with `offset` and stops at `total`. The free plan meters rows per day (25,000); when the quota
+runs out the API answers 429 with `code: ROW_QUOTA`, and the script keeps what it already
+collected instead of dying on a traceback.
 
 *O `limit` é limitado a 100 e a API não avisa: pedir 5.000 devolve 100 linhas com HTTP 200. O
-script pagina com `offset` e para no `total`. Sem chave ele também para em `offset=1000` — esse
-limite é anunciado, com HTTP 403 e `code: ACCOUNT_REQUIRED`, e o script diz o que fazer em vez
-de morrer num traceback. Com `CTIWATCH_API_KEY` definida, o limite some.*
+script pagina com `offset` e para no `total`. O plano gratuito mede linhas por dia (25.000);
+quando a cota acaba a API responde 429 com `code: ROW_QUOTA`, e o script guarda o que já coletou
+em vez de morrer num traceback.*
 
 **`actor-report.py` — versioned group tags.** `by-name/lockbit/victims` returns **5** claims;
-the group's real footprint is **3,275**, spread across `lockbit2`, `lockbit3` and `lockbit5`.
+the group's real footprint is **3,350**, spread across `lockbit2`, `lockbit3` and `lockbit5`.
 Exact matching under-reports by 99.8% without a warning. The script cross-checks both methods
 and tells you when they disagree.
 
-*O `by-name/lockbit/victims` devolve **5**; a presença real do grupo é **3.275**, espalhada
+*O `by-name/lockbit/victims` devolve **5**; a presença real do grupo é **3.350**, espalhada
 entre `lockbit2`, `lockbit3` e `lockbit5`. O casamento exato subconta 99,8% sem avisar. O
 script confere os dois métodos e avisa quando discordam.*
+
+> ⚠️ `sector-watch.py --sector …` returns 0 until the API `sector` filter fix ships (known issue, Nov 2026); `--country` alone works. · *`--sector` devolve 0 até sair a correção do filtro de setor da API; só `--country` funciona.*
 
 **`sector-watch.py` — percentages off a tiny base.** Going from 1 claim to 4 is "+300%", which
 looks like a trend and is arithmetic. The script refuses to print a percentage when the

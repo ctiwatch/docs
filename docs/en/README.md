@@ -118,13 +118,13 @@ endpoints, base URL `https://ctiwatch.com/api/v1/`:
 
 ```bash
 # Platform-wide counters — no authentication needed
-curl https://ctiwatch.com/api/v1/stats
+curl -H "X-Api-Key: $CTIWATCH_API_KEY" https://ctiwatch.com/api/v1/stats
 
 # Look up a single indicator
-curl "https://ctiwatch.com/api/v1/iocs/lookup?value=1.2.3.4"
+curl -H "X-Api-Key: $CTIWATCH_API_KEY" "https://ctiwatch.com/api/v1/iocs/lookup?value=1.2.3.4"
 
 # With an API key
-curl -H "X-Api-Key: $CTIWATCH_KEY" \
+curl -H "X-Api-Key: $CTIWATCH_API_KEY" \
      "https://ctiwatch.com/api/v1/vulnerabilities?is_kev=true&limit=20"
 ```
 

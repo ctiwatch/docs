@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """blocklist.py — build a high-confidence IP blocklist from CTIWatch.
 
-    ./blocklist.py                                   # no key: up to 1000 rows
-    export CTIWATCH_API_KEY=ctw_...                  # free key: no depth limit
+    export CTIWATCH_API_KEY=...                      # free key: https://ctiwatch.com/settings/api-keys
     ./blocklist.py --min-confidence 95 --limit 5000 > block.txt
 
 Standard library only.
@@ -13,10 +12,9 @@ Two traps this example exists to teach:
    5000 returns 100 rows with HTTP 200, so anything that trusts its own `limit`
    silently processes 2% of the data. You have to page with `offset`.
 
-2. Without an API key, `offset` stops at 1000 — deeper paging answers 403
-   ACCOUNT_REQUIRED. That is deliberate: browsing and testing stay open to
-   everyone, bulk collection is what needs a (free) account. A key removes the
-   limit entirely and is one form away at https://ctiwatch.com/register.
+2. The free plan meters ROWS per day (25,000), not only requests. When the
+   quota runs out the API answers 429 with `code: ROW_QUOTA`; the rows already
+   collected are still valid, so the script keeps them and stops cleanly.
 """
 import argparse
 import json
@@ -28,7 +26,6 @@ import urllib.request
 
 API = "https://ctiwatch.com/api/v1"
 PAGE = 100            # the server's hard cap; asking for more is silently clamped
-ANON_MAX_OFFSET = 1000  # depth allowed without an API key
 
 
 def fetch(path, api_key=None, **params):
@@ -49,19 +46,15 @@ def main():
     ap.add_argument("--limit", type=int, default=1000, help="how many to collect")
     ap.add_argument("--type", default="ip", help="ip, domain, url, hash_sha256, …")
     ap.add_argument("--api-key", default=os.environ.get("CTIWATCH_API_KEY"),
-                    help="or set CTIWATCH_API_KEY; lifts the 1000-row depth limit")
+                    help="or set CTIWATCH_API_KEY (required)")
     args = ap.parse_args()
 
+    if not args.api_key:
+        sys.exit("set CTIWATCH_API_KEY first: free key at https://ctiwatch.com/settings/api-keys")
     seen, out = set(), []
     offset = 0
 
     while len(out) < args.limit:
-        if not args.api_key and offset >= ANON_MAX_OFFSET:
-            print(f"# stopped at {len(out)} rows: without an API key the API "
-                  f"stops paging at offset {ANON_MAX_OFFSET}.\n"
-                  "# A free key removes the limit: https://ctiwatch.com/register\n"
-                  "# then: export CTIWATCH_API_KEY=ctw_...", file=sys.stderr)
-            break
         try:
             page = fetch("/iocs", api_key=args.api_key, type=args.type,
                          confidence_min=args.min_confidence,

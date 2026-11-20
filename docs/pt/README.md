@@ -118,13 +118,13 @@ base em `https://ctiwatch.com/api/v1/`:
 
 ```bash
 # Contadores da plataforma — sem autenticação
-curl https://ctiwatch.com/api/v1/stats
+curl -H "X-Api-Key: $CTIWATCH_API_KEY" https://ctiwatch.com/api/v1/stats
 
 # Consultar um indicador
-curl "https://ctiwatch.com/api/v1/iocs/lookup?value=1.2.3.4"
+curl -H "X-Api-Key: $CTIWATCH_API_KEY" "https://ctiwatch.com/api/v1/iocs/lookup?value=1.2.3.4"
 
 # Com chave de API
-curl -H "X-Api-Key: $CTIWATCH_KEY" \
+curl -H "X-Api-Key: $CTIWATCH_API_KEY" \
      "https://ctiwatch.com/api/v1/vulnerabilities?is_kev=true&limit=20"
 ```
 

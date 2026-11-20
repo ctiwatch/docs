@@ -7,7 +7,7 @@
 Answers the only question most people actually have: is pressure on
 organisations like mine going up or down, and who is applying it?
 
-No API key required. Standard library only.
+Needs a free API key in CTIWATCH_API_KEY. Standard library only.
 
 ⚠️ Every record here is a CLAIM published by a ransomware group on its own
 extortion site — not a confirmed breach. Groups exaggerate, recycle old data
@@ -17,16 +17,25 @@ import argparse
 import collections
 import datetime as dt
 import json
+import os
+import sys
 import urllib.parse
 import urllib.request
 
 API = "https://ctiwatch.com/api/v1"
+
+
+def api_key():
+    key = os.environ.get("CTIWATCH_API_KEY", "").strip()
+    if not key:
+        sys.exit("set CTIWATCH_API_KEY first: free key at https://ctiwatch.com/settings/api-keys")
+    return key
 PAGE = 100
 
 
 def fetch(path, **params):
     url = f"{API}{path}?{urllib.parse.urlencode(params)}"
-    req = urllib.request.Request(url, headers={"User-Agent": "ctiwatch-example/1.0"})
+    req = urllib.request.Request(url, headers={"User-Agent": "ctiwatch-example/1.0", "X-Api-Key": api_key()})
     with urllib.request.urlopen(req, timeout=30) as r:
         return json.load(r)
 

@@ -5,8 +5,9 @@
 #   ./kev-watch.sh 50       # 50 most recent
 #
 # Start your patch queue here: "confirmed exploited" beats "theoretically
-# severe" every time. No API key required. Requires: curl, jq
+# severe" every time. Needs a free API key in CTIWATCH_API_KEY. Requires: curl, jq
 set -euo pipefail
+: "${CTIWATCH_API_KEY:?set CTIWATCH_API_KEY first: free key at https://ctiwatch.com/settings/api-keys}"
 
 API="https://ctiwatch.com/api/v1"
 N="${1:-20}"
@@ -14,14 +15,14 @@ N="${1:-20}"
 # NOTE: the KEV filter is `is_kev`. The published OpenAPI file says `in_kev`,
 # which does not exist — and because unknown parameters are silently ignored,
 # the wrong name returns the ENTIRE database looking like a success.
-resp=$(curl -sS --max-time 30 \
+resp=$(curl -sS -H "X-Api-Key: $CTIWATCH_API_KEY" --max-time 30 \
     "$API/vulnerabilities?is_kev=true&sort=published_date&order=desc&limit=$N")
 
 total=$(jq -r '.total' <<<"$resp")
 
 # Guard against the silent-filter trap: if this ever matches the unfiltered
 # count, the filter stopped working and every row below is noise.
-all=$(curl -sS --max-time 30 "$API/vulnerabilities?limit=1" | jq -r '.total')
+all=$(curl -sS -H "X-Api-Key: $CTIWATCH_API_KEY" --max-time 30 "$API/vulnerabilities?limit=1" | jq -r '.total')
 if [[ "$total" == "$all" ]]; then
     echo "REFUSING TO CONTINUE: the is_kev filter returned the whole database" >&2
     echo "($total of $all). The parameter is being ignored." >&2

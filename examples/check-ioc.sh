@@ -4,8 +4,9 @@
 #   ./check-ioc.sh 45.155.205.233
 #   ./check-ioc.sh evil-domain.tld
 #
-# No API key required. Requires: curl, jq
+# Needs a free API key in CTIWATCH_API_KEY. Requires: curl, jq
 set -euo pipefail
+: "${CTIWATCH_API_KEY:?set CTIWATCH_API_KEY first: free key at https://ctiwatch.com/settings/api-keys}"
 
 API="https://ctiwatch.com/api/v1"
 VALUE="${1:-}"
@@ -15,7 +16,7 @@ if [[ -z "$VALUE" ]]; then
     exit 64
 fi
 
-resp=$(curl -sS --max-time 30 "$API/check/$(printf %s "$VALUE" | jq -sRr @uri)")
+resp=$(curl -sS -H "X-Api-Key: $CTIWATCH_API_KEY" --max-time 30 "$API/check/$(printf %s "$VALUE" | jq -sRr @uri)")
 
 if [[ "$(jq -r '.found' <<<"$resp")" != "true" ]]; then
     echo "NOT FOUND   $VALUE"

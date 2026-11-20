@@ -4,53 +4,64 @@
 
 Base URL: **`https://ctiwatch.com/api/v1`**
 
-Everything you can see on the website you can also read from the API, and **most of it needs
-no authentication at all**. This page documents the endpoints as they actually behave —
-every parameter listed here was verified against the live API.
+Everything you can see on the website you can also read from the API. **Every data endpoint
+needs a free API key** (or the browser session the website itself uses). This page documents
+the endpoints as they actually behave — every command on it was run against the live API with
+a free key before it was published (last check: 20 Nov 2026).
 
 ---
 
 ## Quick start
 
+1. Create a free account at [ctiwatch.com/register](https://ctiwatch.com/register).
+2. Create a key at [ctiwatch.com/settings/api-keys](https://ctiwatch.com/settings/api-keys) and copy it (copy button, not
+   a double click: a double click stops at the first `-`).
+3. Call the API:
+
 ```bash
-# No key needed. This works right now.
-curl https://ctiwatch.com/api/v1/stats
+export CTIWATCH_API_KEY="your-key-here"
+curl -H "X-Api-Key: $CTIWATCH_API_KEY" https://ctiwatch.com/api/v1/stats
 ```
 
 ```json
 {
-  "total_iocs": 1737420,
-  "total_cves": 377168,
-  "total_threat_actors": 10758,
-  "active_campaigns": 112,
-  "total_victims": 32334,
-  "kev_count": 3917,
-  "sources_count": 86,
-  "last_updated": "2026-08-14T06:00:50.470Z"
+  "total_iocs": 2488437,
+  "total_cves": 429932,
+  "total_threat_actors": 10958,
+  "active_campaigns": 136,
+  "total_victims": 36634,
+  "last_updated": "2026-11-20T22:04:08.413Z",
+  "kev_count": 1786,
+  "exploitable_count": 4841,
+  "unread_alerts": 13,
+  "sources_count": 97
 }
 ```
+
+The numbers above are an example; they grow every day.
 
 ---
 
 ## Authentication
 
-Most read endpoints are open. A key is required only for CSV export, the Diamond Model, Ask,
-watchlists and worker health.
+Every data endpoint needs a key. The key is free, and the free plan covers normal use (see
+[Rate limits](#rate-limits)).
 
 ```bash
-curl -H "X-Api-Key: ctw_your_key_here" \
+curl -H "X-Api-Key: $CTIWATCH_API_KEY" \
      "https://ctiwatch.com/api/v1/iocs/export/csv?limit=1000"
 ```
 
-- Header name is **`X-Api-Key`**. Keys look like `ctw_` followed by 64 hex characters.
+- Header name is **`X-Api-Key`**. A key is **43 characters of URL-safe base64**
+  (`A–Z a–z 0–9 - _`), with no fixed prefix. It is shown in full only once, when you create it.
 - Create and revoke keys at [ctiwatch.com/settings/api-keys](https://ctiwatch.com/settings/api-keys).
 - Browsers authenticated by session cookie work too — that is how the site itself calls the
   API.
 
-Without credentials, protected endpoints return:
+Without a key (and without a browser session), every data endpoint returns:
 
 ```json
-HTTP 401  {"error": "Authentication required"}
+HTTP 401  {"code": "SESSION_REQUIRED", "error": "This endpoint requires a session or an API key. …"}
 ```
 
 ---
@@ -76,22 +87,11 @@ named objects instead, described per endpoint.
 | Parameter | Default | Maximum |
 |---|---|---|
 | `limit` | 50 | **100** |
-| `offset` | 0 | **1000 without a key** — unlimited with one |
+| `offset` | 0 | unlimited with a key |
 
 ⚠️ **A `limit` above 100 is silently clamped, not rejected.** `?limit=5000` returns HTTP 200
 with 100 items. If you assume you received 5,000 rows, you will silently process 2% of your
 data. Always page with `offset` and stop when `offset >= total`.
-
-**Paging past `offset=1000` requires an account.** Deeper requests without a key answer:
-
-```json
-HTTP 403  {"code": "ACCOUNT_REQUIRED", "max_anonymous_offset": 1000}
-```
-
-This one is not a trap — it is loud, and it tells you exactly what to do. The line is drawn
-between *reading* and *collecting in bulk*: querying, testing and browsing stay open to
-everyone with no signup, while bulk collection needs a free account so the traffic has a name
-attached to it. A [free key](https://ctiwatch.com/register) removes the limit entirely.
 
 ### 🔴 Unknown parameters are silently ignored
 
@@ -101,10 +101,10 @@ HTTP 200.
 
 ```bash
 # Wrong parameter name — looks successful, filters nothing
-curl "…/vulnerabilities?in_kev=true&limit=1"   # total: 359241  ← whole database
+curl -H "X-Api-Key: $CTIWATCH_API_KEY" "…/vulnerabilities?in_kev=true&limit=1"   # total: 410753  ← whole database
 
 # Correct parameter name
-curl "…/vulnerabilities?is_kev=true&limit=1"   # total: 3913    ← actually KEV
+curl -H "X-Api-Key: $CTIWATCH_API_KEY" "…/vulnerabilities?is_kev=true&limit=1"   # total: 1786    ← actually KEV
 ```
 
 **Verify every new filter by watching `total` change.** If `total` is identical with and
@@ -116,8 +116,7 @@ without your filter, the filter is not being applied.
 |---|---|---|
 | `400` | `{"error":"value is required"}` | Missing required parameter |
 | `400` | `{"error":"Invalid id"}` | Malformed identifier |
-| `401` | `{"error":"Authentication required"}` | Endpoint needs a key |
-| `403` | `{"code":"ACCOUNT_REQUIRED"}` | Paging past `offset=1000` without a key |
+| `401` | `{"code":"SESSION_REQUIRED"}` | No key sent (or the key was revoked) |
 | `404` | `{"error":"Not found"}` | No such record |
 | `429` | `{"code":"RATE_LIMIT"}` | Daily **request** cap reached |
 | `429` | `{"code":"ROW_QUOTA"}` | Daily **row** cap reached |
@@ -132,8 +131,8 @@ Read them from the response headers rather than hard-coding them:
 ratelimit-limit: 600          # requests per 60s window, per IP
 ratelimit-remaining: 579
 ratelimit-reset: 46           # seconds until the window resets
-x-ratelimit-limit: 150        # your scope's limit
-x-ratelimit-scope: anonymous  # anonymous | api key | session
+x-ratelimit-limit: 100        # requests per day for your key (100 free, 10,000 supporter)
+x-ratelimit-remaining: 73
 ```
 
 Key traffic is metered two ways, and **rows** is usually the one you will meet first:
@@ -165,7 +164,7 @@ levers — if you have a legitimate use that needs more, ask and it gets raised.
 | `GET /stats/geo` | Victims and actors by geography, plus timeline |
 | `GET /stats/timeline` | `ioc_velocity`, `cve_monthly`, `attack_weekly` |
 | `GET /health` | API, database, ingestion and feed status |
-| `GET /sources` | All 86 collection sources with their last fetch time |
+| `GET /sources` | All collection sources with their last fetch time |
 | `GET /whoami` | The IP the API sees you as |
 
 ### Search
@@ -218,7 +217,7 @@ GET /vulnerabilities
 
 | Parameter | Values | Verified effect |
 |---|---|---|
-| `is_kev` | `true`, `false` | `true` → 3,913 of 359,241 |
+| `is_kev` | `true`, `false` | `true` → 3,913 of 410,753 |
 | `severity` | `CRITICAL`, `HIGH`, `MEDIUM`, `LOW` | case-insensitive input, upper-cased internally |
 | `cvss_min` | Float | `9` → 50,863 |
 | `exploit_status` | e.g. `weaponized` | `weaponized` → 42 |
@@ -265,9 +264,9 @@ GET /victims
 
 | Parameter | Matching | Verified effect |
 |---|---|---|
-| `country` | exact, case-insensitive | `BR` → 532 |
-| `sector` | exact, case-insensitive | `Healthcare` → 1,692 |
-| `group` | **substring** | `lockbit` → 3,275 |
+| `country` | exact, case-insensitive | `BR` → 629 |
+| `sector` | exact, case-insensitive | ⚠️ **known issue (Nov 2026): currently returns `total: 0` for every sector** — being fixed. Until then, use `GET /victims/stats` (`by_sector`) or filter the `sector` field client-side |
+| `group` | **substring** | `lockbit` → 3,350 |
 | `source` | `ransomware.live`, `ransomlook` | |
 
 #### 🔴 Counting one group's victims is the trap on this endpoint
@@ -276,7 +275,7 @@ Neither obvious approach is correct on its own, and both fail *silently*:
 
 | Approach | LockBit result | Failure mode |
 |---|---|---|
-| `/victims?group=lockbit` | **3,275** | Substring — `group=play` also matches `playboy` |
+| `/victims?group=lockbit` | **3,350** | Substring — `group=play` also matches `playboy` |
 | `/threat-actors/by-name/lockbit/victims` | **5** | Exact — misses every versioned tag |
 
 The cause is that **leak-site group tags carry version numbers**. LockBit's footprint is
@@ -287,7 +286,7 @@ match returns 5 claims and under-reports by 99.8%, with no error and no warning.
 exact tag strings and their counts:
 
 ```bash
-curl -s https://ctiwatch.com/api/v1/victims/stats \
+curl -s -H "X-Api-Key: $CTIWATCH_API_KEY" https://ctiwatch.com/api/v1/victims/stats \
   | jq -r '.by_group[] | select(.group_name | test("lockbit"; "i")) | "\(.count)\t\(.group_name)"'
 ```
 
@@ -381,14 +380,14 @@ Runnable versions of all of these live in [`examples/`](../../examples/).
 ### Today's KEV additions
 
 ```bash
-curl -s "https://ctiwatch.com/api/v1/vulnerabilities?is_kev=true&sort=published_date&limit=10" \
+curl -s -H "X-Api-Key: $CTIWATCH_API_KEY" "https://ctiwatch.com/api/v1/vulnerabilities?is_kev=true&sort=published_date&limit=10" \
   | jq -r '.items[] | "\(.cve_id)  CVSS \(.cvss_score)  \(.description[0:70])"'
 ```
 
 ### Is this indicator known?
 
 ```bash
-curl -s "https://ctiwatch.com/api/v1/check/45.155.205.233" | jq '{found, value}'
+curl -s -H "X-Api-Key: $CTIWATCH_API_KEY" "https://ctiwatch.com/api/v1/check/45.155.205.233" | jq '{found, value}'
 ```
 
 ### Build a high-confidence IP blocklist
@@ -398,25 +397,28 @@ The CSV endpoint is the wrong tool for this, and it is worth knowing why:
 ```bash
 # Accepts ONLY `limit` (max 5,000). type= and confidence filters are IGNORED —
 # you get the most recent indicators of every type.
-curl -s -H "X-Api-Key: $CTIWATCH_KEY" \
+curl -s -H "X-Api-Key: $CTIWATCH_API_KEY" \
   "https://ctiwatch.com/api/v1/iocs/export/csv?limit=5000" > all-recent.csv
 ```
 
 For a filtered blocklist, page the JSON endpoint — see
 [`examples/blocklist.py`](../../examples/blocklist.py), which handles the 100-row cap
-correctly and needs no key at all.
+correctly.
 
 ### Who is hitting my sector, in my country?
 
 ```bash
-curl -s "https://ctiwatch.com/api/v1/victims?country=BR&sector=Healthcare&limit=100" \
+curl -s -H "X-Api-Key: $CTIWATCH_API_KEY" "https://ctiwatch.com/api/v1/victims?country=BR&sector=Healthcare&limit=100" \
   | jq -r '.items[] | "\(.attack_date[0:10])  \(.metadata.group)  \(.name)"'
 ```
+
+⚠️ Until the `sector` filter fix ships (known issue, Nov 2026) this returns `total: 0`. Drop `&sector=…` and filter `.sector` in `jq` meanwhile.
+
 
 ### Everything one group has claimed
 
 ```bash
-curl -s "https://ctiwatch.com/api/v1/threat-actors/by-name/LockBit/victims?limit=100" \
+curl -s -H "X-Api-Key: $CTIWATCH_API_KEY" "https://ctiwatch.com/api/v1/threat-actors/by-name/LockBit/victims?limit=100" \
   | jq '{total, top_sectors, first: .items[0].name}'
 ```
 

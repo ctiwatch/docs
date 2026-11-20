@@ -7,7 +7,7 @@
 Pulls the profile, the victim list and the sector breakdown, then prints a
 briefing you can paste into a ticket.
 
-No API key required. Standard library only.
+Needs a free API key in CTIWATCH_API_KEY. Standard library only.
 
 Why `by-name` and not the id endpoint: actor names are what appear in reports
 and news; UUIDs are not. This endpoint is case-insensitive and also tolerates
@@ -23,12 +23,20 @@ two disagree.
 import argparse
 import collections
 import json
+import os
 import sys
 import urllib.error
 import urllib.parse
 import urllib.request
 
 API = "https://ctiwatch.com/api/v1"
+
+
+def api_key():
+    key = os.environ.get("CTIWATCH_API_KEY", "").strip()
+    if not key:
+        sys.exit("set CTIWATCH_API_KEY first: free key at https://ctiwatch.com/settings/api-keys")
+    return key
 PAGE = 100
 
 
@@ -36,7 +44,7 @@ def fetch(path, **params):
     url = f"{API}{path}"
     if params:
         url += "?" + urllib.parse.urlencode(params)
-    req = urllib.request.Request(url, headers={"User-Agent": "ctiwatch-example/1.0"})
+    req = urllib.request.Request(url, headers={"User-Agent": "ctiwatch-example/1.0", "X-Api-Key": api_key()})
     with urllib.request.urlopen(req, timeout=30) as r:
         return json.load(r)
 
